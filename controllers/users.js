@@ -37,9 +37,14 @@ const createUser = (req, res) => {
   const { name, about, avatar } = req.body;
 
   User.create({ name, about, avatar })
-    .then((user) => res.status(CreateCode).send({ data: user }))
-    .catch(() => {
-      res.status(BadRequest).send({ message: 'Ошибка: Неверные данные' });
+    .then((user) => {
+      res.status(CreateCode).send({ data: user });
+    })
+    .catch((error) => {
+      if (error.name === 'ValidationError') {
+        return res.status(BadRequest).send({ message: 'Ошибка: Неверные данные' });
+      }
+      return res.status(ServerError).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' });
     });
 };
 
