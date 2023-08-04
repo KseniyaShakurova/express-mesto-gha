@@ -9,7 +9,7 @@ const {
 
 const getInitialCards = (req, res) => {
   Card.find({})
-    .then((cards) => res.status(NotFound).send(cards))
+    .then((cards) => res.status(NotError).send(cards))
     .catch(() => res.status(ServerError).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' }));
 };
 
@@ -58,9 +58,8 @@ const likeCard = (req, res) => {
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        return res.status(BadRequest).send({ messafe: 'Переданы некорректные данные для постановки лайка.' });
+        return res.status(BadRequest).send({ message: 'Переданы некорректные данные для постановки лайка.' });
       }
-      console.error(error);
       return res.status(ServerError).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' });
     });
 };
@@ -81,7 +80,6 @@ const disLike = (req, res) => {
       if (error.name === 'CastError') {
         return res.status(BadRequest).send({ message: 'Переданы некорректные данные для снятии лайка.' });
       }
-      console.error(error);
       return res.status(ServerError).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' });
     });
 };
