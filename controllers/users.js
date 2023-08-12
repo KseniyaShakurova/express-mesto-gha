@@ -1,21 +1,77 @@
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
-const {
-  BadRequest,
-  ServerError,
-  NotFound,
-  NotError,
-  CreateCode,
-} = require('../utils/utils');
+const BadRequest = require('../errors/BadRequest');
+const NotFound = require('../errors/NotFound');
+const ConflictError = require('../errors/ConflictError');
 
-const getUsers = (req, res) => {
-  User.find({})
-    .then((users) => res.status(NotError).send({ data: users }))
-    .catch(() => {
-      res.status(ServerError).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' });
+const NotError = 200;
+
+const createUser = (req, res, next) => {
+  const {
+    name, about, avatar, email, password,
+  } = req.body;
+  bcrypt.hash(password, 10)
+    .then((hash) => User.create({
+      name, about, avatar, email, password: hash,
+    }))
+    .then((user) => res.status(201).send({
+      name: user.name,
+      about: user.about,
+      avatar: user.avatar,
+      email: user.email,
+      _id: user._id,
+    }))
+    .catch((error) => {
+      if (error.code === 11000) {
+        res.status(ConflictError).send({ message: 'Пользователь с таким email уже существует' });
+      } else {
+        next(error);
+      }
     });
 };
 
-const getUserById = (req, res) => {
+const login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign(
+        { _id: user._id },
+        'secret-key',
+        { expiresIn: '7d' },
+      );
+      res.status(NotError).send({ token });
+    })
+    .catch((error) => {
+      if (error instanceof mongoose.Error.ValidationError) {
+        res
+          .status(BadRequest)
+          .send({ message: 'Ошибка: Неверные данные' });
+      }
+      return next(error);
+    });
+};
+
+const getUserInfo = (req, res, next) => {
+  const { _id } = req.user;
+  User.findById(_id)
+    .then((user) => {
+      if (!user) {
+        return res.status(NotFound).send({ message: 'Пользователь по указанному _id не найден' });
+      }
+      return res.status(NotError).send({ data: user });
+    })
+    .catch((error) => {
+      if (error.name === 'CastError') {
+        return res.status(BadRequest).send({ message: 'Ошибка: Неверные данные' });
+      }
+      return next(error);
+    });
+};
+
+const getUserById = (req, res, next) => {
   const { userId } = req.params;
 
   User.findById(userId)
@@ -29,26 +85,11 @@ const getUserById = (req, res) => {
       if (error.name === 'CastError') {
         return res.status(BadRequest).send({ message: 'Ошибка: Неверные данные' });
       }
-      return res.status(ServerError).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' });
+      return next(error);
     });
 };
 
-const createUser = (req, res) => {
-  const { name, about, avatar } = req.body;
-
-  User.create({ name, about, avatar })
-    .then((user) => {
-      res.status(CreateCode).send({ data: user });
-    })
-    .catch((error) => {
-      if (error.name === 'ValidationError') {
-        return res.status(BadRequest).send({ message: 'Ошибка: Неверные данные' });
-      }
-      return res.status(ServerError).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' });
-    });
-};
-
-const editUser = (req, res) => {
+const editUser = (req, res, next) => {
   const { name, about } = req.body;
   User.findByIdAndUpdate(req.user._id, { name, about }, { new: true, runValidators: true })
     .then((user) => {
@@ -61,11 +102,11 @@ const editUser = (req, res) => {
       if (error.name === 'ValidationError') {
         return res.status(BadRequest).send({ message: 'Пользователь с указанным _id не найден.' });
       }
-      return res.status(ServerError).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' });
+      return next(error);
     });
 };
 
-const editAvatar = (req, res) => {
+const editAvatar = (req, res, next) => {
   const { avatar } = req.body;
   if (!avatar) {
     res.status(BadRequest).send({ message: ' Переданы некорректные данные при обновлении аватара.' });
@@ -81,14 +122,22 @@ const editAvatar = (req, res) => {
       if (error.name === 'ValidationError') {
         return res.status(BadRequest).send({ message: 'Ошибка: Неверные данные.' });
       }
-      return res.status(ServerError).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' });
+      return next(error);
     });
+};
+
+const getUsers = (req, res, next) => {
+  User.find({})
+    .then((users) => res.status(NotError).send({ data: users }))
+    .catch(next);
 };
 
 module.exports = {
   getUsers,
+  getUserInfo,
   getUserById,
   createUser,
   editUser,
   editAvatar,
+  login,
 };

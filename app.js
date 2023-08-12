@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const userRouter = require('./routes/users');
 const cardRouter = require('./routes/cards');
+const newError = require('./middlewares/newError');
 
 const app = express();
 const { PORT = 3000 } = process.env;
@@ -14,20 +15,14 @@ mongoose.connect('mongodb://127.0.0.1:27017/mestodb', {
   useNewUrlParser: true,
 });
 
-app.use((req, res, next) => {
-  req.user = {
-    _id: '64cc94a05e6fc34247b30d2c',
-  };
-
-  next();
-});
-
 app.use('/users', userRouter);
 app.use('/cards', cardRouter);
 
 app.use('/*', (req, res) => {
   res.status(404).send({ message: 'Не известный запрос' });
 });
+
+app.use(newError);
 
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}`);

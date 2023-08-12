@@ -1,33 +1,32 @@
 const Card = require('../models/card');
-const {
-  BadRequest,
-  ServerError,
-  NotFound,
-  NotError,
-  CreateCode,
-} = require('../utils/utils');
+const BadRequest = require('../errors/BadRequest');
+const NotFound = require('../errors/NotFound');
 
-const getInitialCards = (req, res) => {
+const NotError = 200;
+const CreateCode = 201;
+
+const getInitialCards = (req, res, next) => {
   Card.find({})
     .then((cards) => res.status(NotError).send(cards))
-    .catch(() => res.status(ServerError).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' }));
+    .catch(next);
 };
 
-const createNewCard = (req, res) => {
+const createNewCard = (req, res, next) => {
   const { name, link } = req.body;
+  const owner = req.user._id;
 
-  Card.create({ name, link, owner: req.user._id })
+  Card.create({ name, link, owner })
     .then((card) => res.status(CreateCode).send(card))
     .catch((err) => {
       if (err.name === 'ValidationError') {
         res.status(400).send({ message: 'Переданы некорректные данные при создании карточки.' });
       } else {
-        res.status(500).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' });
+        next(err);
       }
     });
 };
 
-const deleteCard = (req, res) => {
+const deleteCard = (req, res, next) => {
   Card.findByIdAndDelete(req.params.cardId)
     .then((card) => {
       if (!card) {
@@ -39,12 +38,11 @@ const deleteCard = (req, res) => {
       if (error.name === 'CastError') {
         return res.status(BadRequest).send({ message: 'Неверные данные' });
       }
-      console.error(error);
-      return res.status(ServerError).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' });
+      return next(error);
     });
 };
 
-const likeCard = (req, res) => {
+const likeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user._id } },
@@ -60,11 +58,11 @@ const likeCard = (req, res) => {
       if (error.name === 'CastError') {
         return res.status(BadRequest).send({ message: 'Переданы некорректные данные для постановки лайка.' });
       }
-      return res.status(ServerError).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' });
+      return next(error);
     });
 };
 
-const disLike = (req, res) => {
+const disLike = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } },
@@ -80,7 +78,7 @@ const disLike = (req, res) => {
       if (error.name === 'CastError') {
         return res.status(BadRequest).send({ message: 'Переданы некорректные данные для снятии лайка.' });
       }
-      return res.status(ServerError).send({ message: 'Ошибка по умолчанию. Сервер не отвечает' });
+      return next(error);
     });
 };
 
