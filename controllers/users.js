@@ -53,14 +53,7 @@ const login = (req, res, next) => {
       );
       res.status(NotError).send({ token });
     })
-    .catch((error) => {
-      if (error instanceof mongoose.Error.ValidationError) {
-        res
-          .status(BadRequest)
-          .send({ message: 'Ошибка: Неверные данные' });
-      }
-      return next(error);
-    });
+    .catch((error) => next(error));
 };
 
 const getUserInfo = (req, res, next) => {
