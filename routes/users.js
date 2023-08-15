@@ -6,7 +6,7 @@ const {
   getUsers, getUserById, editUser, editAvatar, getUserInfo,
 } = require('../controllers/users');
 
-router.get('/', getUsers);
+router.get('/', auth, getUsers);
 router.get('/me', auth, getUserInfo);
 router.get('/:userId', celebrate({
   params: Joi.object().keys({

@@ -8,6 +8,12 @@ const ConflictError = require('../errors/ConflictError');
 
 const NotError = 200;
 
+const getUsers = (req, res, next) => {
+  User.find({})
+    .then((users) => res.status(NotError).send({ data: users }))
+    .catch(next);
+};
+
 const createUser = (req, res, next) => {
   const {
     name, about, avatar, email, password,
@@ -124,12 +130,6 @@ const editAvatar = (req, res, next) => {
       }
       return next(error);
     });
-};
-
-const getUsers = (req, res, next) => {
-  User.find({})
-    .then((users) => res.status(NotError).send({ data: users }))
-    .catch(next);
 };
 
 module.exports = {
