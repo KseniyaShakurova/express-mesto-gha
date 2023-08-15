@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const BadRequest = require('../errors/BadRequest');
 const NotFound = require('../errors/NotFound');
+
 const ConflictError = require('../errors/ConflictError');
 
 const NotError = 200;
@@ -29,11 +30,13 @@ const createUser = (req, res, next) => {
       email: user.email,
       _id: user._id,
     }))
-    .catch((error) => {
-      if (error.code === 11000) {
-        res.status(ConflictError).send({ message: 'Пользователь с таким email уже существует' });
+    .catch((err) => {
+      if (err.code === 11000) {
+        next(new ConflictError('Пользователь с таким email уже зарегистрирован'));
+      } else if (err instanceof mongoose.Error.ValidationError) {
+        next(new BadRequest(err.message));
       } else {
-        next(error);
+        next(err);
       }
     });
 };
