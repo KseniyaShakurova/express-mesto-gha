@@ -6,12 +6,14 @@ const BadRequest = require('../errors/BadRequest');
 const NotFound = require('../errors/NotFound');
 
 const ConflictError = require('../errors/ConflictError');
+const newError = require('../middlewares/newError');
+const Unauthorized = require('../errors/Unauthorized');
 
 const NotError = 200;
 
 const getUsers = (req, res, next) => {
   User.find({})
-    .then((users) => res.status(NotError).send({ data: users }))
+    .then((users) => res.status(NotError).send({ users }))
     .catch(next);
 };
 
@@ -44,13 +46,17 @@ const createUser = (req, res, next) => {
 const login = (req, res, next) => {
   const { email, password } = req.body;
 
-  return User.findUserByCredentials(email, password)
+  User.findOne({ email }).select('+password')
+    .orFail(() => {
+      throw new Unauthorized('Неправильная почта или пароль');
+    }).then((user) => {
+      if (bcrypt.compare(password, user.password)) {
+        return user._id;
+      }
+      throw new Unauthorized('Неправильная почта или пароль');
+    })
     .then((user) => {
-      const token = jwt.sign(
-        { _id: user._id },
-        'secret-key',
-        { expiresIn: '7d' },
-      );
+      const token = jwt.sign({ _id: user._id }, 'secret-key', { expiresIn: '7d' });
       res.status(200).cookie('jwt', token, {
         maxAge: 3600000 * 24 * 7,
         httpOnly: true,
@@ -64,17 +70,17 @@ const login = (req, res, next) => {
 const getUserInfo = (req, res, next) => {
   const { _id } = req.user;
   User.findById(_id)
+    .orFail()
     .then((user) => {
-      if (!user) {
-        return res.status(NotFound).send({ message: 'Пользователь по указанному _id не найден' });
-      }
-      return res.status(NotError).send({ data: user });
+      res.status(NotError).send({ data: user });
     })
-    .catch((error) => {
-      if (error.name === 'CastError') {
-        return res.status(BadRequest).send({ message: 'Ошибка: Неверные данные' });
+
+    .catch((err) => {
+      if (err instanceof mongoose.Error.CastError) {
+        return newError(NotFound, req, res);
       }
-      return next(error);
+
+      return next(err);
     });
 };
 
