@@ -51,9 +51,14 @@ const login = (req, res, next) => {
         'secret-key',
         { expiresIn: '7d' },
       );
-      res.status(NotError).send({ token });
+      res.status(200).cookie('jwt', token, {
+        maxAge: 3600000 * 24 * 7,
+        httpOnly: true,
+        sameSite: true,
+      })
+        .send({ _id: user._id });
     })
-    .catch((error) => next(error));
+    .catch(next);
 };
 
 const getUserInfo = (req, res, next) => {
