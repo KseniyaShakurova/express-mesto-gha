@@ -20,7 +20,7 @@ const createNewCard = (req, res, next) => {
     .then((card) => res.status(CreateCode).send(card))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Переданы некорректные данные при создании карточки.' });
+        next(new BadRequest('Переданы некорректные данные при создании карточки.'));
       } else {
         next(err);
       }
@@ -59,7 +59,7 @@ const likeCard = (req, res, next) => {
       if (error.name === 'CastError') {
         next(new BadRequest('Переданы некорректные данные для постановки лайка.'));
       }
-      next(error);
+      return next(error);
     });
 };
 
@@ -79,7 +79,7 @@ const disLike = (req, res, next) => {
       if (error.name === 'CastError') {
         next(new BadRequest('Переданы некорректные данные для снятии лайка.'));
       }
-      next(error);
+      return next(error);
     });
 };
 

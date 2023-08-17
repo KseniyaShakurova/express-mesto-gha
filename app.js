@@ -9,6 +9,7 @@ const { createUser, login } = require('./controllers/users');
 const NotFound = require('./errors/NotFound');
 
 const app = express();
+
 const { PORT = 3000 } = process.env;
 
 app.use(bodyParser.json());

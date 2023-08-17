@@ -53,9 +53,7 @@ const login = (req, res, next) => {
       const token = jwt.sign(payload, 'some-secret-key', { expiresIn: '7d' });
       res.status(NotError).send({ token });
     })
-    .catch((err) => {
-      next(err);
-    });
+    .catch(next);
 };
 
 const getUserInfo = (req, res, next) => {
