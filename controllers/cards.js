@@ -1,6 +1,7 @@
 const Card = require('../models/card');
 const BadRequest = require('../errors/BadRequest');
 const NotFound = require('../errors/NotFound');
+const Forbidden = require('../errors/Forbidden');
 
 const NotError = 200;
 const CreateCode = 201;
@@ -27,19 +28,19 @@ const createNewCard = (req, res, next) => {
 };
 
 const deleteCard = (req, res, next) => {
-  Card.findByIdAndDelete(req.params.cardId)
-    .then((card) => {
-      if (!card) {
-        throw new NotFound(' Карточка с указанным _id не найдена.');
-      }
-      return res.status(NotError).send({ message: 'Карточка удалена' });
+  const { cardId } = req.params;
+
+  Card.findById(cardId)
+    .orFail(() => {
+      throw new NotFound('Карточка с указанным _id не найдена');
     })
-    .catch((error) => {
-      if (error.name === 'CastError') {
-        return res.status(BadRequest).send({ message: 'Неверные данные' });
+    .then((card) => {
+      if (card.owner.toString() !== req.user._id) {
+        throw new Forbidden('Вы не можете удалить эту карточку');
       }
-      return next(error);
-    });
+      return Card.findByIdAndRemove(cardId).then(() => res.status(200).send(card));
+    })
+    .catch(next);
 };
 
 const likeCard = (req, res, next) => {
