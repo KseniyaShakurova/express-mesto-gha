@@ -57,7 +57,7 @@ const likeCard = (req, res, next) => {
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        next(new BadRequest('Переданы некорректные данные для постановки лайка.'));
+        return next(new BadRequest('Переданы некорректные данные для постановки лайка.'));
       }
       return next(error);
     });
@@ -77,7 +77,7 @@ const disLike = (req, res, next) => {
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        next(new BadRequest('Переданы некорректные данные для снятии лайка.'));
+        return next(new BadRequest('Переданы некорректные данные для снятии лайка.'));
       }
       return next(error);
     });
