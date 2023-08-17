@@ -7,13 +7,15 @@ const NotFound = require('../errors/NotFound');
 
 const ConflictError = require('../errors/ConflictError');
 const newError = require('../middlewares/newError');
-const Unauthorized = require('../errors/Unauthorized');
+// const Unauthorized = require('../errors/Unauthorized');
 
 const NotError = 200;
 
 const getUsers = (req, res, next) => {
   User.find({})
-    .then((users) => res.status(NotError).send({ users }))
+    .then((users) => {
+      res.status(NotError).send(users);
+    })
     .catch(next);
 };
 
@@ -45,26 +47,15 @@ const createUser = (req, res, next) => {
 
 const login = (req, res, next) => {
   const { email, password } = req.body;
-
-  User.findOne({ email }).select('+password')
-    .orFail(() => {
-      throw new Unauthorized('Неправильная почта или пароль');
-    }).then((user) => {
-      if (bcrypt.compare(password, user.password)) {
-        return user._id;
-      }
-      throw new Unauthorized('Неправильная почта или пароль');
-    })
+  return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'secret-key', { expiresIn: '7d' });
-      res.status(200).cookie('jwt', token, {
-        maxAge: 3600000 * 24 * 7,
-        httpOnly: true,
-        sameSite: true,
-      })
-        .send({ _id: user._id });
+      const payload = { _id: user._id };
+      const token = jwt.sign(payload, 'some-secret-key', { expiresIn: '7d' });
+      res.status(NotError).send({ token });
     })
-    .catch(next);
+    .catch((err) => {
+      next(err);
+    });
 };
 
 const getUserInfo = (req, res, next) => {
