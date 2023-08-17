@@ -30,7 +30,7 @@ const deleteCard = (req, res, next) => {
   Card.findByIdAndDelete(req.params.cardId)
     .then((card) => {
       if (!card) {
-        return res.status(NotFound).send({ message: ' Карточка с указанным _id не найдена.' });
+        throw new NotFound(' Карточка с указанным _id не найдена.');
       }
       return res.status(NotError).send({ message: 'Карточка удалена' });
     })
@@ -50,15 +50,15 @@ const likeCard = (req, res, next) => {
   )
     .then((card) => {
       if (!card) {
-        return res.status(NotFound).send({ message: 'Передан несуществующий _id карточки.' });
+        throw new NotFound('Передан несуществующий _id карточки.');
       }
       return res.status(NotError).send(card);
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        return res.status(BadRequest).send({ message: 'Переданы некорректные данные для постановки лайка.' });
+        next(new BadRequest('Переданы некорректные данные для постановки лайка.'));
       }
-      return next(error);
+      next(error);
     });
 };
 
@@ -70,15 +70,15 @@ const disLike = (req, res, next) => {
   )
     .then((card) => {
       if (!card) {
-        return res.status(NotFound).send({ message: 'Передан несуществующий _id карточки.' });
+        throw new NotFound('Передан несуществующий _id карточки.');
       }
       return res.status(NotError).send(card);
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        return res.status(BadRequest).send({ message: 'Переданы некорректные данные для снятии лайка.' });
+        next(new BadRequest('Переданы некорректные данные для снятии лайка.'));
       }
-      return next(error);
+      next(error);
     });
 };
 

@@ -81,15 +81,16 @@ const getUserById = (req, res, next) => {
   User.findById(userId)
     .then((user) => {
       if (!user) {
-        return res.status(NotFound).send({ message: 'Пользователь по указанному _id не найден' });
+        throw new NotFound('Пользователь с таким id не найден');
       }
-      return res.status(NotError).send({ data: user });
+      return res.status(NotError).send({ user });
     })
     .catch((error) => {
       if (error.name === 'CastError') {
-        return res.status(BadRequest).send({ message: 'Ошибка: Неверные данные' });
+        next(new BadRequest('Ошибка: Неверные данные'));
+      } else {
+        next(error);
       }
-      return next(error);
     });
 };
 
